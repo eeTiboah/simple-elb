@@ -89,4 +89,46 @@ resource "aws_security_group" "elb-sg" {
   }
 }
 
+resource "aws_lb" "app-lb" {
+    name = "Application-load-balancer"
+    subnets = [data.aws_subnet_ids.default-subnets.id]
+    load_balancer_type = "application"
+    security_groups = [aws_security_group.elb-sg.id]
+
+}
+
+resource "aws_lb_listener" "app-lb-listener" {
+  load_balancer_arn = aws_lb.app-lb.arn
+  port = 80
+  protocol = "HTTP"
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "404: Page not found"
+      status_code = 404
+    }
+  }
+}
+
+
+
+resource "aws_lb_target_group" "elb-target-group" {
+    name = "Server-target-group"
+    port = var.server_port
+    protocol = "HTTP"
+    vpc_id = data.aws_vpc.default-vpc.id
+
+    health_check {
+    path = "/"
+    protocol = "HTTP"
+    matcher = "200"
+    interval = 15
+    timeout = 3
+    healthy_threshold = 2
+    unhealthy_threshold = 2
+    }
+}
 
